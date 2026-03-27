@@ -87,14 +87,14 @@ You can customize these colors by editing the `COLORS` object in `scripts/status
 
 **macOS / Linux / Git Bash on Windows:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/claude-code-statusline.git
+git clone https://github.com/SalmanAlbalooshi/claude-code-statusline.git
 cd claude-code-statusline
 bash install.sh
 ```
 
 **Windows PowerShell:**
 ```powershell
-git clone https://github.com/YOUR_USERNAME/claude-code-statusline.git
+git clone https://github.com/SalmanAlbalooshi/claude-code-statusline.git
 cd claude-code-statusline
 .\install.ps1
 ```
