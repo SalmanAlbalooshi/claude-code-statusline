@@ -2,26 +2,46 @@
 const fs = require('fs');
 const path = require('path');
 
+// ──────────────────────────────────────────────────────────────────────
+// COLORS: Built-in Claude Code agent types get fixed colors.
+// Any custom/unknown agent type is automatically assigned a color
+// from the palette below (consistent per session via hashing).
+//
+// To pin a specific color for your own agents, just add them here:
+//   'my-custom-agent': '\x1b[36m',
+// ──────────────────────────────────────────────────────────────────────
 const COLORS = {
-  'transformation-lead': '\x1b[31m',
-  'architect': '\x1b[31m',
-  'risk-controls': '\x1b[31m',
-  'business-analyst': '\x1b[34m',
-  'brd-test-runner': '\x1b[34m',
-  'researcher': '\x1b[34m',
-  'fullstack-developer': '\x1b[36m',
-  'excel-dashboard': '\x1b[32m',
-  'qa-tester': '\x1b[32m',
-  'personal-assistant': '\x1b[33m',
-  'pmo-delivery': '\x1b[33m',
-  'presentation-reporting': '\x1b[35m',
-  'ux-ui': '\x1b[35m',
-  'general': '\x1b[37m',
-  'Explore': '\x1b[36m',
-  'Plan': '\x1b[33m',
-  'Bash': '\x1b[32m',
-  'general-purpose': '\x1b[37m'
+  // Built-in Claude Code agents
+  'Explore':         '\x1b[36m',  // cyan
+  'Plan':            '\x1b[33m',  // yellow
+  'Bash':            '\x1b[32m',  // green
+  'general-purpose': '\x1b[37m',  // white
+  'general':         '\x1b[37m',  // white
 };
+
+// Color palette for auto-assignment of unknown agent types
+const COLOR_PALETTE = [
+  '\x1b[31m',  // red
+  '\x1b[34m',  // blue
+  '\x1b[36m',  // cyan
+  '\x1b[32m',  // green
+  '\x1b[33m',  // yellow
+  '\x1b[35m',  // magenta
+];
+
+// Simple string hash for consistent color assignment
+function hashColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
+}
+
+function getColor(agentType) {
+  return COLORS[agentType] || hashColor(agentType);
+}
 
 const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';
@@ -70,17 +90,17 @@ process.stdin.on('end', () => {
     sessionDur = formatElapsed(Date.now() - sessionStart);
 
     // Line 1: Model | Context | Cost | Rate | Session
-    let line1 = `${BOLD}${model}${RESET}  ${DIM}|${RESET}  ${ctxColor}memory:${ctxPct}%${RESET}`;
+    let line1 = `${BOLD}${model}${RESET}  ${DIM}|${RESET}  ${ctxColor}context:${ctxPct}%${RESET}`;
 
     if (cost > 0) {
-      line1 += `  ${DIM}|${RESET}  token cost:$${cost.toFixed(2)}`;
+      line1 += `  ${DIM}|${RESET}  cost:$${cost.toFixed(2)}`;
     }
 
     if (rate5h !== undefined && rate5h !== null) {
       let rateColor = '\x1b[32m';
       if (rate5h > 80) rateColor = '\x1b[31m';
       else if (rate5h > 50) rateColor = '\x1b[33m';
-      line1 += `  ${DIM}|${RESET}  ${rateColor}5h quota:${Math.round(rate5h)}%${RESET}`;
+      line1 += `  ${DIM}|${RESET}  ${rateColor}5h rate:${Math.round(rate5h)}%${RESET}`;
     }
 
     line1 += `  ${DIM}|${RESET}  ${DIM}session:${sessionDur}${RESET}`;
@@ -102,10 +122,9 @@ process.stdin.on('end', () => {
 
       if (agents.length > 0) {
         const active = agents.filter(a => !a.done);
-        const done = agents.filter(a => a.done);
 
         const parts = agents.map(a => {
-          const color = COLORS[a.type] || '\x1b[37m';
+          const color = getColor(a.type);
 
           // Completion flash badge
           if (a.done) {
